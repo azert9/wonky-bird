@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta chardet="UTF-8"/>
+    <script src="static/app.js"></script>
+    <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <style>
+        html, body {
+            margin: 0;
+            height: 100%;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            background-color: black;
+
+            color: white;
+            font-size: 5em;
+        }
+
+        * {
+            touch-action: none;
+        }
+
+        .full-screen {
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            right: 0;
+
+            display: flex;
+        }
+
+        #username-screen {
+            display: none;
+            align-items: center;
+            flex-direction: column;
+            padding: 60px;
+
+            background-color: rgba(0, 0, 0, 0.4);
+        }
+
+        #leaderboard-screen {
+            display: none;
+            align-items: center;
+            flex-direction: column;
+            padding: 60px;
+
+            background-color: rgba(0, 0, 0, 0.4);
+        }
+
+        #leaderboard-table {
+            font-size: 0.5em;
+        }
+
+        #leaderboard-table td {
+            text-align: right;
+            padding-right: 1em;
+        }
+
+        #leaderboard-table td:nth-child(2) {
+            text-align: left;
+        }
+    </style>
+</head>
+<body onload="main()">
+<div id="screen">
+    <div class="full-screen" id="game"></div>
+    <div class="full-screen" id="username-screen">
+        <form id="username-form">
+            <label>
+                Ton nom :
+                <input type="text" name="username">
+            </label>
+            <input type="submit" value="Valider">
+        </form>
+    </div>
+    <div class="full-screen" id="leaderboard-screen" style="display: none">
+        <table id="leaderboard-table"></table>
+        <button id="play-again-button">Rejouer</button>
+    </div>
+</div>
+</body>
+</html>

@@ -20,13 +20,16 @@ export default class {
         while (this.__queue.length !== 0) {
             // TODO: post multiple scores at once
             // TODO: avoid posting duplicate
-            await fetch("api/score", {
+            const resp = await fetch("api/score", {
                 method: "POST",
                 body: JSON.stringify({
                     username: this.__username,
                     score: this.__queue[0],
                 }),
             });
+            if (!resp.ok) {
+                throw new Error(`failed to post score: ${resp.status}`);
+            }
             this.__queue.shift();
         }
     }

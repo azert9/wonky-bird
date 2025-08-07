@@ -6,8 +6,6 @@ export default class {
     readonly screen_height_px;
     readonly screen_width_px;
     readonly game: GameView;
-    readonly username_screen;
-    readonly username_form;
     readonly foreground_view: HTMLElement;
 
     constructor() {
@@ -24,44 +22,76 @@ export default class {
 
         this.game = new GameView(document.getElementById("game"));
 
-        this.username_screen = document.getElementById("username-screen");
-        this.username_form = document.getElementById("username-form");
-
         this.foreground_view = document.getElementById("foreground-view");
     }
 
     reset() {
         this.game.set_blured(false);
-        this.username_screen.style.display = "none";
-        this.foreground_view.innerHTML = "";
+        this.__set_foreground_view(null);
     }
 
-    async show_username_form() {
-        this.username_screen.style.display = "flex"
-
-        // TODO: do a first validation of the username
-
+    async show_username_form(): Promise<string> {
         return await new Promise<string>(resolve => {
-            // TODO: remove the listener once done
-            this.username_form.addEventListener("submit", (event) => {
-                event.preventDefault()
-                let username = event.currentTarget.elements["username"].value
-                this.username_screen.style.display = "none"
-                resolve(username)
-                return false
-            });
+            this.__set_foreground_view(usernameSelectionView((username) => {
+                resolve(username);
+            }));
         });
     }
 
     async show_game_over(scores: Score[] | null) {
         this.game.set_blured(true);
         await new Promise(resolve => {
-            this.foreground_view.appendChild(gameOverView(scores, () => resolve()));
+            this.__set_foreground_view(gameOverView(scores, () => resolve()));
         })
+    }
+
+    private __set_foreground_view(view: HTMLElement | null) {
+        this.foreground_view.innerHTML = "";
+        if (view !== null) {
+            this.foreground_view.appendChild(view);
+        }
     }
 }
 
-// TODO
+function usernameSelectionView(onUsernameSubmitted: (username: string) => void): HTMLElement {
+    const container = document.createElement("div");
+    container.style.backgroundColor = "rgba(0, 0, 0, 0.4)";
+    container.style.width = "100%";
+    container.style.height = "100%";
+    container.style.display = "flex";
+    container.style.flexDirection = "column";
+    container.style.alignItems = "center";
+    container.style.padding = "60px";
+
+    const form = document.createElement("form");
+    container.appendChild(form);
+
+    const label = document.createElement("label");
+    label.textContent = "Ton nom :";
+    form.appendChild(label);
+
+    const usernameInput = document.createElement("input");
+    usernameInput.type = "text";
+    usernameInput.name = "username";
+    usernameInput.required = true;
+    label.appendChild(usernameInput);
+
+    const submitInput = document.createElement("input");
+    submitInput.type = "submit";
+    submitInput.value = "Valider";
+    submitInput.required = true;
+    form.appendChild(submitInput);
+
+    form.addEventListener("submit", (event) => {
+        // TODO: perform basic pre-validation
+        event.preventDefault()
+        let username = event.currentTarget.elements["username"].value
+        onUsernameSubmitted(username)
+        return false
+    });
+
+    return container;
+}
 
 function gameOverView(scores: Score[], onPlayAgainClicked) {
 

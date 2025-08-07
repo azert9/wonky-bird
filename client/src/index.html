@@ -32,31 +32,12 @@
 
             display: flex;
         }
-
-        #username-screen {
-            display: none;
-            align-items: center;
-            flex-direction: column;
-            padding: 60px;
-
-            background-color: rgba(0, 0, 0, 0.4);
-        }
     </style>
 </head>
 <body>
 <div id="screen">
     <div class="full-screen" id="game"></div>
     <div class="full-screen" id="foreground-view"></div>
-    <!-- TODO: harmonize views -->
-    <div class="full-screen" id="username-screen">
-        <form id="username-form">
-            <label>
-                Ton nom :
-                <input type="text" name="username">
-            </label>
-            <input type="submit" value="Valider">
-        </form>
-    </div>
 </div>
 </body>
 </html>

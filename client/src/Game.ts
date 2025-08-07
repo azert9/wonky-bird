@@ -20,35 +20,18 @@ import {
 export default class {
     score = 0;
     is_lost = false;
-    scroll_speed = 0;
-    bird_position_y = 0;
+    scroll_speed = SCROLL_SPEED_START;
+    // position of the top left corner of the bird
+    bird_position_y = 0.5 - BIRD_HEIGHT / 2;
     bird_speed_y = 0;
+
+    // circular array of pipe coordinates
     leftmost_pipe_index = 0;
     pipe_positions_x = [];
     pipe_positions_y = [];
     pipe_counted_in_score = [];
 
     constructor() {
-        this.reset()
-    }
-
-    // TODO: create a new instance instead of calling reset()
-    reset() {
-        this.score = 0
-        this.is_lost = false
-
-        this.scroll_speed = SCROLL_SPEED_START
-
-        // position of the top left corner of the bird
-        this.bird_position_y = 0.5 - BIRD_HEIGHT / 2
-
-        this.bird_speed_y = 0
-
-        // circular array of pipe coordinates
-        this.leftmost_pipe_index = 0
-        this.pipe_positions_x = []
-        this.pipe_positions_y = []
-        this.pipe_counted_in_score = []
         for (let i = 0; i < PIPE_COUNT; i++) {
             this.pipe_positions_x.push(STARTING_GRACE + i * PIPE_SPACING)
             this.pipe_positions_y.push(this.__random_pipe())
@@ -56,7 +39,7 @@ export default class {
         }
     }
 
-    update(elapsed) {
+    update(elapsed: number) {
         let delta_t = Math.min(elapsed, 200) / 1000
 
         if (!this.is_lost) {

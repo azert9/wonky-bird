@@ -41,33 +41,13 @@
 
             background-color: rgba(0, 0, 0, 0.4);
         }
-
-        #leaderboard-screen {
-            display: none;
-            align-items: center;
-            flex-direction: column;
-            padding: 60px;
-
-            background-color: rgba(0, 0, 0, 0.4);
-        }
-
-        #leaderboard-table {
-            font-size: 0.5em;
-        }
-
-        #leaderboard-table td {
-            text-align: right;
-            padding-right: 1em;
-        }
-
-        #leaderboard-table td:nth-child(2) {
-            text-align: left;
-        }
     </style>
 </head>
-<body onload="main()">
+<body>
 <div id="screen">
     <div class="full-screen" id="game"></div>
+    <div class="full-screen" id="foreground-view"></div>
+    <!-- TODO: harmonize views -->
     <div class="full-screen" id="username-screen">
         <form id="username-form">
             <label>
@@ -76,10 +56,6 @@
             </label>
             <input type="submit" value="Valider">
         </form>
-    </div>
-    <div class="full-screen" id="leaderboard-screen" style="display: none">
-        <table id="leaderboard-table"></table>
-        <button id="play-again-button">Rejouer</button>
     </div>
 </div>
 </body>

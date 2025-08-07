@@ -1,172 +1,88 @@
 import Game from "./Game";
 import GameView from "./GameView";
 import {PIPE_COUNT} from "./constants";
-import WaitableButton from "./WaitableButton";
+import Server from "./Server";
+import Screen from "./Screen";
 
-class Screen {
-    readonly screen_height_px;
-    readonly screen_width_px;
-    readonly game: GameView;
-    readonly username_screen;
-    readonly username_form;
-    readonly leaderboard_screen;
-    readonly leaderboard_table;
+async function gameLoop(game_view: GameView): Promise<number> {
+    const game = new Game();
 
-    constructor(body) {
-        this.screen_height_px = document.body.clientHeight;
-        this.screen_width_px = Math.min(document.body.clientWidth, this.screen_height_px * 0.7);
+    game_view.set_bird_position(game.bird_position_y)
+    // TODO: set visible after first update
 
-        let screen = document.getElementById("screen")
-        screen.style.position = "absolute"
-        screen.style.backgroundColor = "grey"
-        screen.style.overflow = "hidden"
-        screen.style.width = this.screen_width_px + "px"
-        screen.style.height = this.screen_height_px + "px"
-        screen.style.margin = "0 auto"
-
-        this.game = new GameView(document.getElementById("game"))
-
-        this.username_screen = document.getElementById("username-screen")
-        this.username_form = document.getElementById("username-form")
-
-        this.leaderboard_screen = document.getElementById("leaderboard-screen")
-        this.leaderboard_table = document.getElementById("leaderboard-table")
+    const keypress_handler = (event) => {
+        if (event.code === "Space")
+            game.flap()
     }
+    document.addEventListener("keypress", keypress_handler, false)
 
-    reset() {
-        this.username_screen.style.display = "none"
-        this.leaderboard_screen.style.display = "none"
-        this.leaderboard_table.innerHTML = ""
+    const touchstart_handler = (event) => {
+        game.flap()
+        event.preventDefault()
     }
+    document.addEventListener("touchstart", touchstart_handler, false)
 
-    show_username_form(callback) {
-        this.username_screen.style.display = "flex"
+    let t = performance.now()
 
-        // TODO: remove this listener on reset()
-        this.username_form.addEventListener("submit", (event) => {
-            event.preventDefault()
-            let username = event.currentTarget.elements["username"].value
-            this.username_screen.style.display = "none"
-            callback(username)
-            return false
-        })
-    }
-
-    show_leaderboard(scores) {
-        this.leaderboard_screen.style.display = "flex"
-
-        for (let entry of scores) {
-            let row = document.createElement("tr")
-            let cell1 = document.createElement("td")
-            cell1.textContent = entry.username
-            row.appendChild(cell1)
-            let cell2 = document.createElement("td")
-            cell2.textContent = entry.score
-            row.appendChild(cell2)
-            this.leaderboard_table.appendChild(row)
-        }
-    }
-}
-
-class GameLoop {
-    private readonly __game: Game;
-    private readonly __game_view: GameView;
-
-    constructor(game, game_view) {
-        this.__game = game
-        this.__game_view = game_view
-    }
-
-    run() {
-        return new Promise(resolve => {
-            this.__run(resolve)
-        })
-    }
-
-    __run(game_over_callback) {
-        this.__game_view.set_bird_position(this.__game.bird_position_y)
-        // TODO: set visible after first update
-
-        const keypress_handler = (event) => {
-            if (event.code === "Space")
-                this.__game.flap()
-        }
-        document.addEventListener("keypress", keypress_handler, false)
-
-        const touchstart_handler = (event) => {
-            this.__game.flap()
-            event.preventDefault()
-        }
-        document.addEventListener("touchstart", touchstart_handler, false)
-
-        let t = performance.now()
-
+    await new Promise(resolve => {
         let frame_interval = window.setInterval(() => {
             let t_next = performance.now()
-            this.__game.update(t_next - t)
-            this.__game_view.set_bird_position(this.__game.bird_position_y)
+            game.update(t_next - t)
+            game_view.set_bird_position(game.bird_position_y)
             for (let i = 0; i < PIPE_COUNT; i++) {
-                this.__game_view.set_pipe_position(
+                game_view.set_pipe_position(
                     i,
-                    this.__game.pipe_positions_x[i],
-                    this.__game.pipe_positions_y[i]
+                    game.pipe_positions_x[i],
+                    game.pipe_positions_y[i]
                 )
             }
-            this.__game_view.set_score(this.__game.score)
-            if (this.__game.is_lost) {
+            game_view.set_score(game.score)
+            if (game.is_lost) {
                 window.clearInterval(frame_interval)
                 document.removeEventListener("keypress", keypress_handler, false)
                 document.removeEventListener("touchstart", touchstart_handler, false)
-                game_over_callback()
+                resolve()
             }
             t = t_next
         }, 1000 / 60)
-    }
+    });
+
+    return game.score;
 }
 
-async function game_over(score, screen) {
-
+async function get_username(screen: Screen): Promise<string> {
     let username = window.localStorage.getItem("username")
-
-    if (username !== null) {
-        await submit_score_and_show_leaderboard(score, username, screen)
-    } else {
-        screen.show_username_form((username) => {
-            window.localStorage.setItem("username", username)
-            submit_score_and_show_leaderboard(score, username, screen)
-        })
+    if (username === null) {
+        username = await screen.show_username_form();
+        window.localStorage.setItem("username", username);
     }
-}
-
-async function submit_score_and_show_leaderboard(score, username, screen) {
-
-    await fetch("api/score", {
-        method: "POST",
-        body: JSON.stringify({
-            username: username,
-            score: score,
-        }),
-    })
-
-    let response = await fetch("api/leaderboard")
-    let leaderboard = await response.json()
-
-    screen.show_leaderboard(leaderboard)
+    return username;
 }
 
 async function main() {
-    const game = new Game()
-    const screen = new Screen(document.body)
-    const game_loop = new GameLoop(game, screen.game)
-    const play_again_button = new WaitableButton(document.getElementById("play-again-button") as HTMLButtonElement)
+    const screen = new Screen()
+
+    let server = null;
 
     while (true) {
-        await game_loop.run()
-        await game_over(game.score, screen)
-        await play_again_button.wait()
-        game.reset()
+        const score = await gameLoop(screen.game);
+
+        if (server === null) {
+            const username = await get_username(screen);
+            server = new Server(username);
+        }
+
+        try {
+            await server.push_score(score);
+            const leaderboard = await server.get_leaderboard();
+            await screen.show_game_over(leaderboard);
+        } catch (e) {
+            console.error(`something went wrong: ${e}`);
+            await screen.show_game_over(null);
+        }
+
         screen.reset()
     }
 }
 
-window.main = main;
+main();

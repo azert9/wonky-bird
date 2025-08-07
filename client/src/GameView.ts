@@ -41,6 +41,10 @@ export default class {
         this.__root_element.appendChild(this.__hud)
     }
 
+    set_blured(blured: boolean) {
+        this.__root_element.style.filter = blured ? "blur(10px)" : null;
+    }
+
     set_score(score) {
         this.__hud.textContent = score
     }

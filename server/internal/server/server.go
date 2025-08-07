@@ -2,8 +2,8 @@ package server
 
 import (
 	"errors"
-	"wonky-bird/internal/database"
 	"regexp"
+	"wonky-bird/internal/database"
 )
 
 var UsernameRegex = regexp.MustCompile("^[a-zA-Z$@? ~#&/\"'éèàïù*€,.;:!_+-]{1,20}$")
@@ -50,9 +50,9 @@ func (srv *Server) GetLeaderboard() ([]UsernameAndScore, error) {
 
 	response := make([]UsernameAndScore, len(scores))
 	for i := range scores {
-		response[i] = UsernameAndScore {
+		response[i] = UsernameAndScore{
 			Username: scores[i].Username,
-			Score: scores[i].Score,
+			Score:    scores[i].Score,
 		}
 	}
 

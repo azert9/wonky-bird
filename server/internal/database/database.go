@@ -73,7 +73,7 @@ func (d *Database) GetLeaderboard(limit int) ([]UsernameAndScore, error) {
 		})
 	}
 
-	sort.Slice(scores, func (i, j int) bool {
+	sort.Slice(scores, func(i, j int) bool {
 		return scores[i].Score > scores[j].Score
 	})
 

@@ -2,51 +2,15 @@ package main
 
 import (
 	"encoding/json"
-	"wonky-bird/internal/client"
-	"wonky-bird/internal/database"
-	"wonky-bird/internal/server"
 	"io"
 	"log"
 	"net/http"
 	"os"
-	"strings"
+	"wonky-bird/internal/database"
+	"wonky-bird/internal/server"
 )
 
-var srv *server.Server
-
-func getRoot(w http.ResponseWriter, r *http.Request) {
-
-	content, err := client.Files.ReadFile("index.html")
-	if err != nil {
-		// TODO
-	}
-
-	_, err = w.Write(content)
-	if err != nil {
-		// TODO
-	}
-}
-
-func getStatic(w http.ResponseWriter, r *http.Request) {
-
-	path := r.URL.Path[len("/static/"):]
-
-	content, err := client.Files.ReadFile(path)
-	if err != nil {
-		// TODO
-	}
-
-	if strings.HasSuffix(path, ".js") {
-		w.Header().Set("Content-Type", "application/javascript")
-	}
-
-	_, err = w.Write(content)
-	if err != nil {
-		// TODO
-	}
-}
-
-func getApi(w http.ResponseWriter, r *http.Request) {
+func handleApiRequest(srv *server.Server, w http.ResponseWriter, r *http.Request) {
 
 	path := r.URL.Path[len("/api/"):]
 
@@ -121,20 +85,34 @@ func main() {
 
 	listenAddress := mustGetEnv("LISTEN_ADDRESS")
 	dbPath := mustGetEnv("DB_PATH")
+	webRoot := os.Getenv("WEB_ROOT")
+
+	// preparing api server
 
 	db, err := database.New(dbPath)
 	if err != nil {
 		panic(err)
 	}
 
-	srv, err = server.NewServer(db)
+	srv, err := server.NewServer(db)
 	if err != nil {
 		panic(err)
 	}
 
-	http.HandleFunc("/", getRoot)
-	http.HandleFunc("/static/", getStatic)
-	http.HandleFunc("/api/", getApi)
+	http.HandleFunc("/api/", func(w http.ResponseWriter, r *http.Request) {
+		handleApiRequest(srv, w, r)
+	})
+
+	// preparing static server
+
+	if webRoot != "" {
+		webRootFS := http.Dir(webRoot)
+		http.Handle("/", http.FileServer(webRootFS))
+	} else {
+		log.Printf("static files disabled, api only")
+	}
+
+	// running server
 
 	log.Printf("listening on %s", listenAddress)
 

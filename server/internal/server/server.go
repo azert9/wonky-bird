@@ -4,6 +4,7 @@ import (
 	"errors"
 	"regexp"
 	"wonky-bird/internal/database"
+	"wonky-bird/internal/protocol"
 )
 
 var UsernameRegex = regexp.MustCompile("^[a-zA-Z$@? ~#&/\"'éèàïù*€,.;:!_+-]{1,20}$")
@@ -18,17 +19,21 @@ func NewServer(db *database.Database) (*Server, error) {
 	}, nil
 }
 
-func (srv *Server) PutScore(username string, score int) error {
+func (srv *Server) PutGames(username string, userAgent string, games []protocol.RecordedGame) error {
 
 	if !UsernameRegex.Match([]byte(username)) {
 		return errors.New("username is not valid")
 	}
 
-	if score < 0 {
-		return errors.New("score is negative")
+	if len(games) == 0 {
+		return nil
+	}
+	bestScore := games[0].Score
+	for _, game := range games {
+		bestScore = max(bestScore, game.Score)
 	}
 
-	err := srv.db.PutScore(username, score)
+	err := srv.db.PutScore(username, bestScore)
 	if err != nil {
 		return err
 	}
@@ -36,21 +41,16 @@ func (srv *Server) PutScore(username string, score int) error {
 	return nil
 }
 
-type UsernameAndScore struct {
-	Username string `json:"username"`
-	Score    int    `json:"score"`
-}
-
-func (srv *Server) GetLeaderboard() ([]UsernameAndScore, error) {
+func (srv *Server) GetLeaderboard() ([]protocol.LeaderboardEntry, error) {
 
 	scores, err := srv.db.GetLeaderboard(20)
 	if err != nil {
 		return nil, err
 	}
 
-	response := make([]UsernameAndScore, len(scores))
+	response := make([]protocol.LeaderboardEntry, len(scores))
 	for i := range scores {
-		response[i] = UsernameAndScore{
+		response[i] = protocol.LeaderboardEntry{
 			Username: scores[i].Username,
 			Score:    scores[i].Score,
 		}

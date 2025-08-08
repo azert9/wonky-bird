@@ -5,6 +5,7 @@ import (
 	"os"
 	"sort"
 	"sync"
+	"wonky-bird/internal/protocol"
 )
 
 type Database struct {
@@ -14,7 +15,7 @@ type Database struct {
 
 type UsernameAndScore struct {
 	Username string
-	Score    int
+	Score    protocol.Score
 }
 
 func New(path string) (*Database, error) {
@@ -34,7 +35,7 @@ func New(path string) (*Database, error) {
 	return db, nil
 }
 
-func (d *Database) PutScore(username string, score int) error {
+func (d *Database) PutScore(username string, score protocol.Score) error {
 
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
@@ -84,17 +85,17 @@ func (d *Database) GetLeaderboard(limit int) ([]UsernameAndScore, error) {
 	return scores, nil
 }
 
-func (d *Database) load() (map[string]int, error) {
+func (d *Database) load() (map[string]protocol.Score, error) {
 
 	dataBytes, err := os.ReadFile(d.path)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return make(map[string]int), nil
+			return make(map[string]protocol.Score), nil
 		}
 		return nil, err
 	}
 
-	var data map[string]int
+	var data map[string]protocol.Score
 	err = json.Unmarshal(dataBytes, &data)
 	if err != nil {
 		return nil, err
@@ -103,7 +104,7 @@ func (d *Database) load() (map[string]int, error) {
 	return data, nil
 }
 
-func (d *Database) save(data map[string]int) error {
+func (d *Database) save(data map[string]protocol.Score) error {
 
 	dataBytes, err := json.Marshal(data)
 	if err != nil {

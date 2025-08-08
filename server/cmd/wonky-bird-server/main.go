@@ -2,11 +2,11 @@ package main
 
 import (
 	"encoding/json"
-	"io"
 	"log"
 	"net/http"
 	"os"
 	"wonky-bird/internal/database"
+	"wonky-bird/internal/protocol"
 	"wonky-bird/internal/server"
 )
 
@@ -35,34 +35,25 @@ func handleApiRequest(srv *server.Server, w http.ResponseWriter, r *http.Request
 			panic(err) // TODO
 		}
 
-	} else if path == "score" {
+	} else if path == "games" {
 
 		if r.Method != http.MethodPost {
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
 
-		requestBody, err := io.ReadAll(r.Body)
+		var requestBody protocol.RecordedGames
+		err := json.NewDecoder(r.Body).Decode(&requestBody)
 		if err != nil {
-			w.WriteHeader(500)
-			return
-		}
-
-		type Request struct {
-			Username string `json:"username"`
-			Score    int    `json:"score"`
-		}
-
-		var requestBodyDecoded Request
-		if err := json.Unmarshal(requestBody, &requestBodyDecoded); err != nil {
 			w.WriteHeader(400)
 			return
 		}
 
-		log.Printf("score submitted by player %q: %d", requestBodyDecoded.Username, requestBodyDecoded.Score)
+		userAgent := r.Header.Get("User-Agent")
 
-		err = srv.PutScore(requestBodyDecoded.Username, requestBodyDecoded.Score)
+		err = srv.PutGames(requestBody.Username, userAgent, requestBody.Games)
 		if err != nil {
+			// TODO: can be a 400
 			w.WriteHeader(500)
 			return
 		}

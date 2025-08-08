@@ -1,3 +1,4 @@
+const RECORDED_GAMES_QUEUE_LOCAL_STORAGE_KEY = "recorded-games";
 const API_URL: string = get_api_url();
 
 function get_api_url(): string {
@@ -10,57 +11,60 @@ function get_api_url(): string {
 
 export default class {
     private readonly __username: string;
-    private readonly __score_queue: number[] = [];
+    private readonly __recorded_games_queue: RecordedGame[] = [];
 
     constructor(username: string) {
         this.__username = username;
 
-        const savedScoreQueue = window.localStorage.getItem("score-queue");
-        if (savedScoreQueue !== null) {
+        const recorded_games = window.localStorage.getItem(RECORDED_GAMES_QUEUE_LOCAL_STORAGE_KEY);
+        if (recorded_games !== null) {
             try {
-                this.__score_queue = JSON.parse(savedScoreQueue);
+                this.__recorded_games_queue = JSON.parse(recorded_games);
             } catch (e) {
-                console.error(`failed to parse saved score queue: ${e}`);
+                console.error(`failed to parse saved recorded games: ${e}`);
             }
         }
     }
 
-    async push_score(score: number) {
-        this.__score_queue.push(score);
-        this.__save_score_queue();
-        await this.__try_upload_scores();
+    async push_recorded_game(game: RecordedGame) {
+        this.__recorded_games_queue.push(game);
+        window.localStorage.setItem(
+            RECORDED_GAMES_QUEUE_LOCAL_STORAGE_KEY,
+            JSON.stringify(this.__recorded_games_queue),
+        );
+        await this.__try_upload_recorded_games();
     }
 
-    async get_leaderboard(): Promise<Score[]> {
+    async get_leaderboard(): Promise<LeaderboardEntry[]> {
         const response = await fetch(API_URL + "api/leaderboard");
         return await response.json();
     }
 
-    private async __try_upload_scores() {
-        while (this.__score_queue.length !== 0) {
-            // TODO: post multiple scores at once
-            // TODO: avoid posting duplicate
-            const resp = await fetch(API_URL + "api/score", {
+    private async __try_upload_recorded_games() {
+        if (this.__recorded_games_queue.length !== 0) {
+            const resp = await fetch(API_URL + "api/games", {
                 method: "POST",
                 body: JSON.stringify({
                     username: this.__username,
-                    score: this.__score_queue[0],
+                    games: this.__recorded_games_queue,
                 }),
             });
             if (!resp.ok) {
-                throw new Error(`failed to post score: ${resp.status}`);
+                throw new Error(`failed to post recorded games: ${resp.status}`);
             }
-            this.__score_queue.shift();
-            this.__save_score_queue();
+            this.__recorded_games_queue.splice(0, this.__recorded_games_queue.length);
+            window.localStorage.removeItem(RECORDED_GAMES_QUEUE_LOCAL_STORAGE_KEY);
         }
-    }
-
-    private __save_score_queue() {
-        window.localStorage.setItem("score-queue", JSON.stringify(this.__score_queue));
     }
 }
 
-export interface Score {
+export interface RecordedGame {
+    score: number;
+    game_over_timestamp_ms: number;
+    game_duration_ms: number;
+}
+
+export interface LeaderboardEntry {
     username: string;
     score: number;
 }

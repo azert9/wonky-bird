@@ -1,6 +1,5 @@
 import GameView from "./GameView";
-import WaitableButton from "./WaitableButton";
-import {Score} from "./Server";
+import {LeaderboardEntry} from "./Server";
 
 export default class {
     readonly screen_height_px;
@@ -38,7 +37,7 @@ export default class {
         });
     }
 
-    async show_game_over(scores: Score[] | null) {
+    async show_game_over(scores: LeaderboardEntry[] | null) {
         this.game.set_blured(true);
         await new Promise(resolve => {
             this.__set_foreground_view(gameOverView(scores, () => resolve()));
@@ -93,7 +92,7 @@ function usernameSelectionView(onUsernameSubmitted: (username: string) => void):
     return container;
 }
 
-function gameOverView(scores: Score[], onPlayAgainClicked) {
+function gameOverView(scores: LeaderboardEntry[], onPlayAgainClicked) {
 
     const container = document.createElement("div");
     container.style.backgroundColor = "rgba(0, 0, 0, 0.4)";
@@ -119,7 +118,7 @@ function gameOverView(scores: Score[], onPlayAgainClicked) {
     return container;
 }
 
-function scoreTable(scores: Score[]): HTMLElement {
+function scoreTable(scores: LeaderboardEntry[]): HTMLElement {
     const table = document.createElement("table");
     table.style.fontSize = "0.5em";
 

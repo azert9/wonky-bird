@@ -65,6 +65,8 @@ async function main() {
     let server = null;
 
     while (true) {
+        let game_start_t = performance.now();
+
         const score = await gameLoop(screen.game);
 
         if (server === null) {
@@ -73,7 +75,11 @@ async function main() {
         }
 
         try {
-            await server.push_score(score);
+            await server.push_recorded_game({
+                score: score,
+                game_over_timestamp_ms: Date.now(),
+                game_duration_ms: performance.now() - game_start_t,
+            });
             const leaderboard = await server.get_leaderboard();
             await screen.show_game_over(leaderboard);
         } catch (e) {

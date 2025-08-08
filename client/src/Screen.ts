@@ -105,6 +105,9 @@ function gameOverView(scores: LeaderboardEntry[], onPlayAgainClicked) {
     main.style.flexGrow = "1";
     main.style.padding = "60px";
     main.style.overflowY = "scroll";
+    main.style.display = "flex";
+    main.style.flexDirection = "column";
+    main.style.alignItems = "center";
     container.appendChild(main);
 
     if (scores === null) {

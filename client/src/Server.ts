@@ -1,3 +1,13 @@
+const API_URL: string = get_api_url();
+
+function get_api_url(): string {
+    let url = process.env.API_URL || "";
+    if (url !== "" && !url.endsWith("/")) {
+        url += "/";
+    }
+    return url;
+}
+
 export default class {
     private readonly __username: string;
     private readonly __score_queue: number[] = [];
@@ -7,11 +17,11 @@ export default class {
 
         const savedScoreQueue = window.localStorage.getItem("score-queue");
         if (savedScoreQueue !== null) {
-           try {
-               this.__score_queue = JSON.parse(savedScoreQueue);
-           } catch (e) {
-               console.error(`failed to parse saved score queue: ${e}`);
-           }
+            try {
+                this.__score_queue = JSON.parse(savedScoreQueue);
+            } catch (e) {
+                console.error(`failed to parse saved score queue: ${e}`);
+            }
         }
     }
 
@@ -22,7 +32,7 @@ export default class {
     }
 
     async get_leaderboard(): Promise<Score[]> {
-        const response = await fetch("api/leaderboard");
+        const response = await fetch(API_URL + "api/leaderboard");
         return await response.json();
     }
 
@@ -30,7 +40,7 @@ export default class {
         while (this.__score_queue.length !== 0) {
             // TODO: post multiple scores at once
             // TODO: avoid posting duplicate
-            const resp = await fetch("api/score", {
+            const resp = await fetch(API_URL + "api/score", {
                 method: "POST",
                 body: JSON.stringify({
                     username: this.__username,

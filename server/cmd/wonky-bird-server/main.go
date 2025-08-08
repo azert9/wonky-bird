@@ -86,6 +86,7 @@ func main() {
 	listenAddress := mustGetEnv("LISTEN_ADDRESS")
 	dbPath := mustGetEnv("DB_PATH")
 	webRoot := os.Getenv("WEB_ROOT")
+	clientURL := os.Getenv("CLIENT_URL")
 
 	// preparing api server
 
@@ -100,6 +101,10 @@ func main() {
 	}
 
 	http.HandleFunc("/api/", func(w http.ResponseWriter, r *http.Request) {
+		if clientURL != "" {
+			w.Header().Set("Access-Control-Allow-Origin", clientURL)
+			w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+		}
 		handleApiRequest(srv, w, r)
 	})
 

@@ -22,7 +22,7 @@ COPY --from=build-client /build/dist /static
 COPY --from=build-server /build/wonky-bird-server /
 
 ENV LISTEN_ADDRESS=0.0.0.0:8000
-ENV DB_PATH=/data/db.json
+ENV DB_PATH=/data/db.sqlite
 ENV WEB_ROOT=/static
 
 # TODO: run as non-root

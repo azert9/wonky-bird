@@ -10,7 +10,7 @@ type RecordedGames struct {
 type RecordedGame struct {
 	Score               Score  `json:"score"`
 	GameOverTimestampMS uint64 `json:"game_over_timestamp_ms"`
-	GameDurationMS      uint64 `json:"game_duration_ms"`
+	DurationMS          uint64 `json:"duration_ms"`
 }
 
 type LeaderboardEntry struct {

@@ -25,17 +25,14 @@ func (srv *Server) PutGames(username string, userAgent string, games []protocol.
 		return errors.New("username is not valid")
 	}
 
-	if len(games) == 0 {
-		return nil
-	}
-	bestScore := games[0].Score
-	for _, game := range games {
-		bestScore = max(bestScore, game.Score)
+	if err := srv.db.PutUser(username); err != nil {
+		return err
 	}
 
-	err := srv.db.PutScore(username, bestScore)
-	if err != nil {
-		return err
+	for _, game := range games {
+		if err := srv.db.PutGame(username, game, userAgent); err != nil {
+			return err
+		}
 	}
 
 	return nil

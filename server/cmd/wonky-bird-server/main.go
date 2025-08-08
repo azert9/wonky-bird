@@ -54,6 +54,7 @@ func handleApiRequest(srv *server.Server, w http.ResponseWriter, r *http.Request
 		err = srv.PutGames(requestBody.Username, userAgent, requestBody.Games)
 		if err != nil {
 			// TODO: can be a 400
+			log.Printf("error putting games: %v", err)
 			w.WriteHeader(500)
 			return
 		}
@@ -81,10 +82,16 @@ func main() {
 
 	// preparing api server
 
-	db, err := database.New(dbPath)
+	db, err := database.Open(dbPath)
 	if err != nil {
 		panic(err)
 	}
+	defer func() {
+		err := db.Close()
+		if err != nil {
+			log.Printf("error closing database: %v", err)
+		}
+	}()
 
 	srv, err := server.NewServer(db)
 	if err != nil {

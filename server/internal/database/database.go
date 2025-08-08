@@ -1,16 +1,24 @@
 package database
 
 import (
-	"encoding/json"
-	"os"
-	"sort"
-	"sync"
+	"database/sql"
+	"embed"
+	"errors"
+	"log"
+	"path/filepath"
 	"wonky-bird/internal/protocol"
+
+	"github.com/golang-migrate/migrate/v4"
+	sqlitemigrate "github.com/golang-migrate/migrate/v4/database/sqlite"
+	"github.com/golang-migrate/migrate/v4/source/iofs"
+	_ "modernc.org/sqlite"
 )
 
+//go:embed migrations/*
+var migrations embed.FS
+
 type Database struct {
-	mutex sync.RWMutex
-	path  string
+	sqlDB *sql.DB
 }
 
 type UsernameAndScore struct {
@@ -18,103 +26,108 @@ type UsernameAndScore struct {
 	Score    protocol.Score
 }
 
-func New(path string) (*Database, error) {
+func Open(path string) (*Database, error) {
 
-	db := &Database{path: path}
+	// opening database
 
-	data, err := db.load()
+	dsn, err := filepath.Abs(path) // we do this so the path is not interpreted as an url
 	if err != nil {
 		return nil, err
 	}
 
-	err = db.save(data)
+	// TODO: enforce foreign keys
+
+	sqlDB, err := sql.Open("sqlite", dsn)
 	if err != nil {
 		return nil, err
 	}
+
+	// applying migrations
+
+	migrationsIOFS, err := iofs.New(migrations, "migrations")
+	if err != nil {
+		return nil, err
+	}
+
+	dbDriver, err := sqlitemigrate.WithInstance(sqlDB, &sqlitemigrate.Config{})
+	if err != nil {
+		return nil, err
+	}
+
+	m, err := migrate.NewWithInstance("iofs", migrationsIOFS, "sqlite", dbDriver)
+	if err != nil {
+		return nil, err
+	}
+
+	err = m.Up()
+	if err != nil && !errors.Is(err, migrate.ErrNoChange) {
+		return nil, err
+	}
+
+	//
+
+	db := &Database{sqlDB: sqlDB}
 
 	return db, nil
 }
 
-func (d *Database) PutScore(username string, score protocol.Score) error {
+func (db *Database) Close() error {
+	return db.sqlDB.Close()
+}
 
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
+func (db *Database) PutUser(username string) error {
 
-	data, err := d.load()
+	_, err := db.sqlDB.Exec("INSERT INTO users (username) VALUES (?) ON CONFLICT DO NOTHING", username)
 	if err != nil {
 		return err
-	}
-
-	if score > data[username] {
-		data[username] = score
-		err = d.save(data)
-		if err != nil {
-			return err
-		}
 	}
 
 	return nil
 }
 
-func (d *Database) GetLeaderboard(limit int) ([]UsernameAndScore, error) {
+func (db *Database) PutGame(username string, game protocol.RecordedGame, userAgent string) error {
 
-	d.mutex.RLock()
-	defer d.mutex.RUnlock()
+	_, err := db.sqlDB.Exec(
+		"INSERT INTO games (username, game_over_timestamp_ms, score, duration_ms, user_agent) VALUES (?, ?, ?, ?, ?) ON CONFLICT DO NOTHING",
+		username,
+		game.GameOverTimestampMS,
+		game.Score,
+		game.DurationMS,
+		userAgent,
+	)
+	if err != nil {
+		return err
+	}
 
-	data, err := d.load()
+	return nil
+}
+
+func (db *Database) GetLeaderboard(limit int) ([]UsernameAndScore, error) {
+
+	rows, err := db.sqlDB.Query("SELECT username, max(score) AS best_score FROM games GROUP BY username ORDER BY best_score DESC LIMIT ?", limit)
 	if err != nil {
 		return nil, err
 	}
+	defer func(rows *sql.Rows) {
+		err := rows.Close()
+		if err != nil {
+			log.Printf("error closing db cursor: %v", err)
+		}
+	}(rows)
 
-	scores := make([]UsernameAndScore, 0, len(data))
-	for username, score := range data {
+	var scores []UsernameAndScore
+	for rows.Next() {
+		var username string
+		var score protocol.Score
+		err := rows.Scan(&username, &score)
+		if err != nil {
+			return nil, err
+		}
 		scores = append(scores, UsernameAndScore{
 			Username: username,
 			Score:    score,
 		})
 	}
 
-	sort.Slice(scores, func(i, j int) bool {
-		return scores[i].Score > scores[j].Score
-	})
-
-	if limit > 0 && limit < len(scores) {
-		scores = scores[:limit]
-	}
-
 	return scores, nil
-}
-
-func (d *Database) load() (map[string]protocol.Score, error) {
-
-	dataBytes, err := os.ReadFile(d.path)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return make(map[string]protocol.Score), nil
-		}
-		return nil, err
-	}
-
-	var data map[string]protocol.Score
-	err = json.Unmarshal(dataBytes, &data)
-	if err != nil {
-		return nil, err
-	}
-
-	return data, nil
-}
-
-func (d *Database) save(data map[string]protocol.Score) error {
-
-	dataBytes, err := json.Marshal(data)
-	if err != nil {
-		return err
-	}
-
-	err = os.WriteFile(d.path, dataBytes, 0644)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }

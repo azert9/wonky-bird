@@ -78,7 +78,7 @@ async function main() {
             await server.push_recorded_game({
                 score: score,
                 game_over_timestamp_ms: Date.now(),
-                game_duration_ms: performance.now() - game_start_t,
+                duration_ms: Math.round(performance.now() - game_start_t),
             });
             const leaderboard = await server.get_leaderboard();
             await screen.show_game_over(leaderboard);

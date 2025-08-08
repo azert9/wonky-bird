@@ -61,7 +61,7 @@ export default class {
 export interface RecordedGame {
     score: number;
     game_over_timestamp_ms: number;
-    game_duration_ms: number;
+    duration_ms: number;
 }
 
 export interface LeaderboardEntry {
